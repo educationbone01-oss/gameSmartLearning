@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kota Edukasi PAUD - Smart Learning</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Fredoka', 'sans-serif'] },
+                    colors: {
+                        'pastel-pink': '#FFD1DC',
+                        'pastel-blue': '#AEC6CF',
+                        'pastel-green': '#B4E6B0',
+                        'pastel-yellow': '#FDFD96',
+                        'pastel-purple': '#C3B1E1',
+                        'soft-white': '#F9F9F9'
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles & Animations */
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background-color: #AEC6CF;
+            background-image: radial-gradient(#ffffff 10%, transparent 10%), radial-gradient(#ffffff 10%, transparent 10%);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            overflow: hidden; /* Prevent scrolling, act like app */
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 1.5rem;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(15px);
+            border: 4px solid white;
+            border-radius: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        /* Animations */
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+
+        @keyframes pop-in {
+            0% { opacity: 0; transform: scale(0.5) translateY(20px); }
+            70% { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float { animation: float 4s ease-in-out infinite; }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+        .animate-wiggle { animation: wiggle 1s ease-in-out infinite; }
+
+        /* Button Press Effect */
+        .btn-press { transition: all 0.1s ease; }
+        .btn-press:active { transform: scale(0.92); }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* Confetti Canvas */
+        #confetti-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+        }
+
+        /* Map Grid */
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 1.5rem;
+            padding: 1rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding-bottom: 120px; /* Space for UI overlay */
+        }
+
+        .building-card {
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .building-card:hover { transform: translateY(-8px) scale(1.05); }
+
+        .mascot {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 4rem;
+            z-index: 50;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="w-full h-screen text-gray-800">
+
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- UI Overlay (Always visible except splash) -->
+    <div id="ui-overlay" class="fixed top-0 left-0 w-full p-4 flex justify-between items-center z-40 hidden pointer-events-none">
+        <!-- Left Menu Group -->
+        <div class="flex gap-3 pointer-events-auto">
+            <!-- Back Button (Inside Game) -->
+            <button id="btn-back" class="glass w-14 h-14 flex items-center justify-center text-2xl text-pink-500 btn-press hidden shadow-soft" onclick="app.goHome()">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            
+            <!-- Home/Menu Awal Button (On Map) -->
+            <button id="btn-main-menu" class="glass w-14 h-14 flex items-center justify-center text-2xl text-green-500 btn-press shadow-soft" onclick="app.goMenuAwal()" title="Menu Awal">
+                <i class="fa-solid fa-house"></i>
+            </button>
+
+            <!-- Parent Dashboard Button (On Map) -->
+            <button id="btn-parent" class="glass w-14 h-14 flex items-center justify-center text-2xl text-blue-500 btn-press shadow-soft" onclick="app.showDashboard()" title="Dashboard">
+                <i class="fa-solid fa-chart-pie"></i>
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="glass px-4 py-2 flex items-center gap-4 text-xl font-bold shadow-soft pointer-events-auto">
+            <div class="flex items-center gap-2 text-yellow-500">
+                <i class="fa-solid fa-star animate-pulse"></i>
+                <span id="ui-stars">0</span>
+            </div>
+            <div class="flex items-center gap-2 text-yellow-600">
+                <i class="fa-solid fa-coins animate-bounce-slow"></i>
+                <span id="ui-coins">0</span>
+            </div>
+            <button id="btn-audio" class="ml-2 text-gray-500 btn-press" onclick="app.toggleAudio()">
+                <i class="fa-solid fa-volume-up"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mascot -->
+    <div id="mascot" class="mascot animate-float hidden" onclick="app.mascotSpeak()">🦉</div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container" class="w-full h-full relative overflow-hidden">
+
+        <!-- 1. SPLASH SCREEN -->
+        <div id="screen-splash" class="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-blue-300 via-blue-200 to-green-200 z-50 transition-opacity duration-500 overflow-hidden cursor-pointer">
+            
+            <!-- Petunjuk Audio (Bypass kebijakan browser autoplay) -->
+            <div id="splash-audio-hint" class="absolute top-4 bg-white/90 text-purple-600 font-bold px-6 py-3 rounded-full border-4 border-purple-300 shadow-soft animate-bounce text-lg z-20 flex items-center gap-2">
+                <span>🔊 Ketuk layar untuk musik ceria!</span> 🎵
+            </div>
+
+            <!-- Elemen Latar Belakang Cuaca -->
+            <div class="absolute top-8 left-8 md:top-12 md:left-16 text-7xl animate-wiggle" style="animation-duration: 4s;">☀️</div>
+            <div class="absolute top-16 right-10 md:right-24 text-6xl animate-float" style="animation-delay: 1s;">☁️</div>
+            <div class="absolute top-40 left-4 md:left-20 text-5xl animate-float" style="animation-delay: 2.5s;">☁️</div>
+            <div class="absolute top-32 right-32 text-4xl animate-float opacity-70" style="animation-delay: 0.5s;">☁️</div>
+            
+            <!-- Elemen Edukatif Melayang (Abjad & Angka) -->
+            <div class="absolute top-1/4 left-12 text-5xl font-black text-red-500 animate-bounce-slow opacity-80" style="animation-delay: 0s; text-shadow: 2px 2px 0 #fff;">A</div>
+            <div class="absolute top-1/3 right-12 text-6xl font-black text-yellow-400 animate-float opacity-80" style="animation-delay: 1.2s; text-shadow: 2px 2px 0 #fff;">1</div>
+            <div class="absolute bottom-1/3 left-10 text-6xl font-black text-green-500 animate-float opacity-80" style="animation-delay: 0.8s; text-shadow: 2px 2px 0 #fff;">B</div>
+            <div class="absolute bottom-1/4 right-16 text-5xl font-black text-purple-500 animate-bounce-slow opacity-80" style="animation-delay: 1.5s; text-shadow: 2px 2px 0 #fff;">2</div>
+            <div class="absolute top-1/2 left-6 text-4xl font-black text-pink-500 animate-wiggle opacity-80" style="animation-delay: 0.2s; text-shadow: 2px 2px 0 #fff;">C</div>
+            <div class="absolute top-2/3 right-8 text-6xl font-black text-blue-500 animate-float opacity-80" style="animation-delay: 1.8s; text-shadow: 2px 2px 0 #fff;">3</div>
+
+            <!-- Panel Kaca Utama -->
+            <div class="glass-panel p-8 md:p-12 flex flex-col items-center text-center relative z-10 w-11/12 max-w-lg border-8 border-white/80">
+                
+                <!-- Trio Maskot -->
+                <div class="flex gap-2 md:gap-4 mb-2">
+                    <div class="text-6xl animate-bounce" style="animation-duration: 2.1s;">🦉</div>
+                    <div class="text-7xl animate-bounce" style="animation-duration: 2s;">🤖</div>
+                    <div class="text-6xl animate-bounce" style="animation-duration: 2.2s;">🐰</div>
+                </div>
+                
+                <!-- Judul Rainbow Text -->
+                <h1 class="text-5xl md:text-6xl font-black drop-shadow-md mb-2 leading-tight tracking-wide">
+                    <span class="text-red-500 inline-block hover:animate-wiggle">K</span><span class="text-orange-500 inline-block hover:animate-wiggle">o</span><span class="text-yellow-500 inline-block hover:animate-wiggle">t</span><span class="text-green-500 inline-block hover:animate-wiggle">a</span>
+                    <br>
+                    <span class="text-blue-500 inline-block hover:animate-wiggle">E</span><span class="text-indigo-500 inline-block hover:animate-wiggle">d</span><span class="text-purple-500 inline-block hover:animate-wiggle">u</span><span class="text-pink-500 inline-block hover:animate-wiggle">k</span><span class="text-red-500 inline-block hover:animate-wiggle">a</span><span class="text-orange-500 inline-block hover:animate-wiggle">s</span><span class="text-yellow-500 inline-block hover:animate-wiggle">i</span>
+                </h1>
+                
+                <!-- Subjudul Lucu -->
+                <div class="bg-yellow-100 px-6 py-2 rounded-full border-4 border-yellow-300 shadow-sm mb-8 transform -rotate-2 hover:rotate-0 transition-transform">
+                    <p class="text-xl md:text-2xl font-bold text-orange-600">PAUD Smart Learning 🚀</p>
+                </div>
+                
+                <!-- Tombol Main -->
+                <button onclick="app.initApp()" class="bg-gradient-to-b from-pink-400 to-pink-500 text-white font-bold text-3xl px-12 py-4 rounded-[2rem] border-4 border-white shadow-[0_8px_0_#d81b60] active:shadow-[0_0px_0_#d81b60] active:translate-y-2 transition-all animate-pulse flex items-center gap-4 group">
+                    MULAI <i class="fa-solid fa-play bg-white/20 p-2 rounded-full group-hover:scale-125 transition-transform"></i>
+                </button>
+            </div>
+            
+            <!-- Pemandangan Bawah (Taman/Kota) -->
+            <div class="absolute bottom-[-10px] w-full flex justify-between items-end text-5xl md:text-7xl px-2 md:px-10 z-0 pointer-events-none opacity-90 drop-shadow-md">
+                <span class="animate-wiggle" style="animation-duration: 3s;">🌳</span>
+                <span>🏡</span>
+                <span>🌼</span>
+                <span class="animate-bounce-slow text-8xl mb-4">🚂</span>
+                <span>🏫</span>
+                <span>🌻</span>
+                <span class="animate-wiggle" style="animation-duration: 4s;">🌲</span>
+            </div>
+        </div>
+
+        <!-- 2. CHARACTER SELECT SCREEN -->
+        <div id="screen-char-select" class="absolute inset-0 flex flex-col items-center justify-center p-6 hidden">
+            <div class="glass-panel w-full max-w-2xl p-8 text-center animate-pop-in">
+                <h2 class="text-4xl font-bold text-purple-600 mb-2">Halo Adik!</h2>
+                <p class="text-xl text-gray-600 mb-8">Pilih teman bermainmu hari ini yuk!</p>
+                
+                <div class="flex justify-center gap-8 md:gap-16">
+                    <button onclick="app.selectCharacter('boy')" class="group flex flex-col items-center btn-press">
+                        <div class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-blue-100 border-8 border-white shadow-soft flex items-center justify-center text-7xl group-hover:bg-blue-200 transition-colors">
+                            👦
+                        </div>
+                        <span class="mt-4 text-2xl font-bold text-blue-500 group-hover:scale-110 transition-transform">Anak Laki-laki</span>
+                    </button>
+                    
+                    <button onclick="app.selectCharacter('girl')" class="group flex flex-col items-center btn-press">
+                        <div class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-pink-100 border-8 border-white shadow-soft flex items-center justify-center text-7xl group-hover:bg-pink-200 transition-colors">
+                            👧
+                        </div>
+                        <span class="mt-4 text-2xl font-bold text-pink-500 group-hover:scale-110 transition-transform">Anak Perempuan</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. CITY MAP SCREEN -->
+        <div id="screen-map" class="absolute inset-0 overflow-y-auto hidden">
+            <div class="min-h-full p-6 pt-24 pb-32">
+                <div class="text-center mb-8 animate-pop-in">
+                    <h2 class="text-4xl md:text-5xl font-bold text-white drop-shadow-md mb-2">Peta Kota Edukasi</h2>
+                    <p class="text-xl text-white font-medium drop-shadow">Pilih bangunan untuk mulai belajar!</p>
+                </div>
+                
+                <div id="map-grid" class="map-grid">
+                    <!-- Buildings injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. MINI GAME CONTAINER -->
+        <div id="screen-game" class="absolute inset-0 bg-soft-white hidden flex flex-col">
+            <div class="flex-1 pt-24 pb-6 px-4 md:px-8 flex flex-col max-w-4xl mx-auto w-full">
+                <!-- Game Header -->
+                <div class="text-center mb-6">
+                    <h2 id="game-title" class="text-4xl font-bold text-purple-600 mb-2">Judul Game</h2>
+                    <p id="game-instruction" class="text-xl text-gray-600 bg-white rounded-full py-2 px-6 inline-block shadow-sm">Instruksi bermain...</p>
+                </div>
+                
+                <!-- Game Play Area -->
+                <div id="game-area" class="flex-1 glass-panel p-6 flex flex-col items-center justify-center relative overflow-hidden">
+                    <!-- Game content injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. PARENT DASHBOARD -->
+        <div id="screen-dashboard" class="absolute inset-0 bg-pastel-blue hidden overflow-y-auto z-50">
+            <div class="min-h-full p-6 py-12 max-w-3xl mx-auto flex flex-col">
+                <div class="glass-panel p-8 flex-1 animate-pop-in">
+                    <div class="flex justify-between items-center mb-8 border-b-4 border-pastel-blue pb-4">
+                        <h2 class="text-4xl font-bold text-purple-600">Dashboard Orang Tua</h2>
+                        <button onclick="app.goHome()" class="w-12 h-12 rounded-full bg-red-100 text-red-500 text-xl font-bold btn-press flex items-center justify-center shadow-sm">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Stats Summary -->
+                        <div class="bg-blue-50 rounded-2xl p-6 border-2 border-blue-100">
+                            <h3 class="text-2xl font-bold text-blue-600 mb-4"><i class="fa-solid fa-chart-simple mr-2"></i>Ringkasan</h3>
+                            <ul class="space-y-4 text-lg font-medium text-gray-700">
+                                <li class="flex justify-between"><span>Level Saat Ini:</span> <span id="dash-level" class="text-purple-600 font-bold text-2xl">1</span></li>
+                                <li class="flex justify-between"><span>Total Bintang:</span> <span id="dash-stars" class="text-yellow-500 font-bold"><i class="fa-solid fa-star"></i> 0</span></li>
+                                <li class="flex justify-between"><span>Total Koin:</span> <span id="dash-coins" class="text-yellow-600 font-bold"><i class="fa-solid fa-coins"></i> 0</span></li>
+                            </ul>
+                        </div>
+
+                        <!-- Progress Bars -->
+                        <div class="bg-green-50 rounded-2xl p-6 border-2 border-green-100">
+                            <h3 class="text-2xl font-bold text-green-600 mb-4"><i class="fa-solid fa-bars-progress mr-2"></i>Perkembangan</h3>
+                            <div id="dash-progress" class="space-y-4">
+                                <!-- Progress bars injected via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Badges -->
+                        <div class="bg-pink-50 rounded-2xl p-6 border-2 border-pink-100 md:col-span-2">
+                            <h3 class="text-2xl font-bold text-pink-600 mb-4"><i class="fa-solid fa-award mr-2"></i>Koleksi Lencana</h3>
+                            <div id="dash-badges" class="flex flex-wrap gap-4 justify-center py-4">
+                                <!-- Badges injected via JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="md:col-span-2 text-center mt-4">
+                            <button onclick="app.resetData()" class="text-red-400 font-medium hover:text-red-600 underline">Reset Data (Hapus Progress)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal Overlay -->
+        <div id="modal-success" class="absolute inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+            <div class="glass-panel w-11/12 max-w-md p-8 text-center transform scale-0 transition-transform duration-300" id="modal-success-content">
+                <div class="text-7xl mb-4 animate-bounce-slow">🌟</div>
+                <h2 class="text-4xl font-bold text-purple-600 mb-2">Hebat!</h2>
+                <p class="text-xl text-gray-600 mb-6">Kamu pintar sekali!</p>
+                <div class="flex justify-center gap-4 mb-6 text-2xl font-bold">
+                    <span class="text-yellow-500">+10 <i class="fa-solid fa-star"></i></span>
+                    <span class="text-yellow-600">+50 <i class="fa-solid fa-coins"></i></span>
+                </div>
+                <button onclick="app.closeSuccessModal()" class="w-full bg-pastel-green text-green-800 font-bold text-2xl py-3 rounded-xl border-4 border-white shadow-soft btn-press">
+                    Lanjut <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIC                           -->
+    <!-- ========================================== -->
+    <script>
+        /**
+         * KOTA EDUKASI PAUD - CORE SYSTEM
+         * Menggunakan Vanilla JS + ES6, struktur modular.
+         */
+
+        // --- 1. DATA & STATE MANAGEMENT ---
+        const GameData = {
+            buildings: [
+                { id: 'angka', title: 'Kereta Angka', icon: '🚂', color: 'bg-red-300', desc: 'Belajar Menghitung' },
+                { id: 'huruf', title: 'Dunia Huruf', icon: '🔤', color: 'bg-blue-300', desc: 'Belajar ABC' },
+                { id: 'warna', title: 'Taman Warna', icon: '🌈', color: 'bg-purple-300', desc: 'Mengenal Warna' },
+                { id: 'bentuk', title: 'Museum Bentuk', icon: '🔺', color: 'bg-yellow-300', desc: 'Mengenal Bentuk' },
+                { id: 'buah', title: 'Kebun Buah', icon: '🍎', color: 'bg-green-300', desc: 'Nama Buah' },
+                { id: 'hewan', title: 'Kebun Binatang', icon: '🦁', color: 'bg-orange-300', desc: 'Mengenal Hewan' },
+                { id: 'profesi', title: 'Kota Profesi', icon: '👩‍⚕️', color: 'bg-pink-300', desc: 'Pekerjaan' },
+                { id: 'musik', title: 'Studio Musik', icon: '🎵', color: 'bg-teal-300', desc: 'Suara & Nada' },
+            ],
+            badges: [
+                { id: 'b_angka', name: 'Ahli Angka', icon: '🏅' },
+                { id: 'b_huruf', name: 'Ahli Huruf', icon: '🏆' },
+                { id: 'b_warna', name: 'Pelukis', icon: '🎨' },
+                { id: 'b_buah', name: 'Ahli Buah', icon: '🍎' },
+                { id: 'b_hewan', name: 'Ahli Hewan', icon: '🦁' },
+                { id: 'b_profesi', name: 'Ahli Profesi', icon: '👨‍✈️' },
+                { id: 'b_musik', name: 'Ahli Musik', icon: '🎵' }
+            ]
+        };
+
+        class StateManager {
+            constructor() {
+                this.defaultState = {
+                    character: null,
+                    coins: 0,
+                    stars: 0,
+                    level: 1,
+                    xp: 0,
+                    progress: { angka: 0, huruf: 0, warna: 0, bentuk: 0, buah: 0, hewan: 0, profesi: 0, musik: 0 },
+                    unlockedBadges: [],
+                    audioEnabled: true
+                };
+                this.state = { ...this.defaultState };
+                this.load();
+            }
+
+            load() {
+                const saved = localStorage.getItem('paud_save_data');
+                if (saved) {
+                    try {
+                        this.state = { ...this.defaultState, ...JSON.parse(saved) };
+                    } catch (e) { console.error("Error loading save data", e); }
+                }
+            }
+
+            save() {
+                localStorage.setItem('paud_save_data', JSON.stringify(this.state));
+                this.updateUI();
+            }
+
+            addReward(stars, coins) {
+                this.state.stars += stars;
+                this.state.coins += coins;
+                this.state.xp += (stars + coins);
+                
+                // Simple level up logic
+                if (this.state.xp > this.state.level * 200) {
+                    this.state.level++;
+                    app.audio.play('levelUp');
+                    app.tts.speak(`Wah hebat! Kamu naik ke level ${this.state.level}`);
+                }
+                this.save();
+            }
+
+            addProgress(gameId, amount = 10) {
+                if (this.state.progress[gameId] !== undefined) {
+                    this.state.progress[gameId] = Math.min(100, this.state.progress[gameId] + amount);
+                    this.checkBadges();
+                    this.save();
+                }
+            }
+
+            checkBadges() {
+                if (this.state.progress.angka >= 100 && !this.state.unlockedBadges.includes('b_angka')) {
+                    this.state.unlockedBadges.push('b_angka');
+                }
+                if (this.state.progress.huruf >= 100 && !this.state.unlockedBadges.includes('b_huruf')) {
+                    this.state.unlockedBadges.push('b_huruf');
+                }
+                if (this.state.progress.buah >= 100 && !this.state.unlockedBadges.includes('b_buah')) {
+                    this.state.unlockedBadges.push('b_buah');
+                }
+                if (this.state.progress.hewan >= 100 && !this.state.unlockedBadges.includes('b_hewan')) {
+                    this.state.unlockedBadges.push('b_hewan');
+                }
+                if (this.state.progress.profesi >= 100 && !this.state.unlockedBadges.includes('b_profesi')) {
+                    this.state.unlockedBadges.push('b_profesi');
+                }
+                if (this.state.progress.musik >= 100 && !this.state.unlockedBadges.includes('b_musik')) {
+                    this.state.unlockedBadges.push('b_musik');
+                }
+            }
+
+            updateUI() {
+                document.getElementById('ui-stars').innerText = this.state.stars;
+                document.getElementById('ui-coins').innerText = this.state.coins;
+                
+                const audioBtn = document.getElementById('btn-audio');
+                audioBtn.innerHTML = this.state.audioEnabled ? '<i class="fa-solid fa-volume-up"></i>' : '<i class="fa-solid fa-volume-mute"></i>';
+                if(this.state.audioEnabled) audioBtn.classList.replace('text-red-500', 'text-gray-500');
+                else audioBtn.classList.replace('text-gray-500', 'text-red-500');
+
+                // Update Mascot based on character
+                const mascotEl = document.getElementById('mascot');
+                mascotEl.innerHTML = this.state.character === 'boy' ? '🤖' : '🦉'; // Robot for boy, Owl for girl
+            }
+
+            reset() {
+                this.state = { ...this.defaultState };
+                this.save();
+            }
+        }
+
+        // --- 2. AUDIO & TTS ENGINE ---
+        class AudioEngine {
+            constructor(stateManager) {
+                this.state = stateManager;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Urutan melodi utama yang ceria, energik & aktif (Upbeat Pentatonic Mayor)
+                this.bgmMelody = [
+                    523.25, 587.33, 659.25, 0,      // C5 - D5 - E5 - Rest
+                    659.25, 698.46, 783.99, 0,      // E5 - F5 - G5 - Rest
+                    783.99, 880.00, 783.99, 659.25, // G5 - A5 - G5 - E5
+                    587.33, 523.25, 587.33, 0,      // D5 - C5 - D5 - Rest
+                    523.25, 587.33, 659.25, 0,      // C5 - D5 - E5 - Rest
+                    659.25, 698.46, 783.99, 0,      // E5 - F5 - G5 - Rest
+                    880.00, 783.99, 659.25, 587.33, // A5 - G5 - E5 - D5
+                    523.25, 587.33, 523.25, 0       // C5 - D5 - C5 - Rest
+                ];
+
+                // Bassline pengiring ceria ketukan ganda (*bouncy walking bass*)
+                this.bgmBass = [
+                    130.81, 130.81, 164.81, 164.81, // C3, E3
+                    174.61, 174.61, 196.00, 196.00, // F3, G3
+                    130.81, 130.81, 164.81, 164.81, // C3, E3
+                    196.00, 196.00, 196.00, 196.00, // G3
+                    130.81, 130.81, 164.81, 164.81, // C3, E3
+                    174.61, 174.61, 196.00, 196.00, // F3, G3
+                    174.61, 174.61, 196.00, 196.00, // F3, G3
+                    130.81, 196.00, 130.81, 0       // C3 - G3 - C3 - Rest
+                ];
+                
+                this.bgmStep = 0;
+                this.bgmTimer = null;
+            }
+
+            // Fungsi membunyikan synthesizer ceria lembut dengan volume teratur dan penjadwalan opsional
+            playTone(frequency, type = 'sine', duration = 0.3, volume = 0.3, startTime = null) {
+                if (!this.state.state.audioEnabled) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type;
+                const targetTime = startTime !== null ? startTime : this.ctx.currentTime;
+                osc.frequency.setValueAtTime(frequency, targetTime);
+                
+                // Kurva ADSR (Attack, Decay, Sustain, Release) yang plucky (seperti xylophone mainan)
+                gain.gain.setValueAtTime(0, targetTime);
+                gain.gain.linearRampToValueAtTime(volume, targetTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, targetTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start(targetTime);
+                osc.stop(targetTime + duration);
+            }
+
+            // Fungsi membunyikan Jingle Fanfare Pembuka yang sangat seru & ceria!
+            playIntroFanfare() {
+                if (!this.state.state.audioEnabled) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const now = this.ctx.currentTime;
+                // Nada Arpeggio naik ceria: C4, E4, G4, C5, E5, G5, C6 dalam tempo sangat cepat
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    this.playTone(freq, 'sine', 0.5, 0.05, now + (i * 0.08));
+                });
+            }
+
+            // Mulai musik latar belakang ceria secara procedural melodi (gaya arcade ceria)
+            startBGM() {
+                if (!this.state.state.audioEnabled) return;
+                if (this.bgmTimer) return; // Mencegah duplikasi timer
+
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const tempo = 220; // Tempo lebih cepat (220ms per nada) untuk BGM yang seru dan bersemangat!
+                this.bgmStep = 0;
+
+                this.bgmTimer = setInterval(() => {
+                    if (!this.state.state.audioEnabled) {
+                        this.stopBGM();
+                        return;
+                    }
+                    
+                    // Layer 1: Melodi Utama (Gelombang Segitiga Lembut untuk suara plucky manis)
+                    const melodyFreq = this.bgmMelody[this.bgmStep];
+                    if (melodyFreq > 0) {
+                        this.playTone(melodyFreq, 'triangle', 0.20, 0.025);
+                    }
+
+                    // Layer 2: Bassline Hangat (Gelombang Sinusoidal agar getaran bass tetap bulat dan tidak bising)
+                    const bassFreq = this.bgmBass[this.bgmStep];
+                    if (bassFreq > 0) {
+                        this.playTone(bassFreq, 'sine', 0.18, 0.04);
+                    }
+                    
+                    this.bgmStep = (this.bgmStep + 1) % this.bgmMelody.length;
+                }, tempo);
+            }
+
+            // Hentikan musik latar belakang
+            stopBGM() {
+                if (this.bgmTimer) {
+                    clearInterval(this.bgmTimer);
+                    this.bgmTimer = null;
+                }
+            }
+
+            play(type) {
+                if (!this.state.state.audioEnabled) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                const now = this.ctx.currentTime;
+                
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(600, now + 0.1);
+                    osc.frequency.setValueAtTime(800, now + 0.2);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'levelUp') {
+                    osc.type = 'square';
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.15));
+                    });
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                }
+            }
+        }
+
+        class TTSEngine {
+            constructor(stateManager) {
+                this.state = stateManager;
+                this.synth = window.speechSynthesis;
+                this.voice = null;
+                // Try to find Indonesian voice
+                this.synth.onvoiceschanged = () => {
+                    const voices = this.synth.getVoices();
+                    this.voice = voices.find(v => v.lang.includes('id')) || voices[0];
+                };
+            }
+
+            speak(text) {
+                if (!this.state.state.audioEnabled || !this.synth) return;
+                this.synth.cancel(); // stop current speaking
+                const utterance = new SpeechSynthesisUtterance(text);
+                if (this.voice) utterance.voice = this.voice;
+                utterance.lang = 'id-ID';
+                utterance.rate = 0.9; // slightly slower for kids
+                utterance.pitch = 1.2; // slightly higher/friendlier
+                this.synth.speak(utterance);
+            }
+        }
+
+        // --- 3. MINIGAME LOGIC TEMPLATES ---
+        class MinigameEngine {
+            constructor(app) {
+                this.app = app;
+                this.area = document.getElementById('game-area');
+                this.title = document.getElementById('game-title');
+                this.instruction = document.getElementById('game-instruction');
+                this.currentGameId = null;
+            }
+
+            loadGame(id) {
+                this.currentGameId = id;
+                this.area.innerHTML = '';
+                
+                const bldg = GameData.buildings.find(b => b.id === id);
+                if(bldg) {
+                    this.title.innerText = bldg.title;
+                    this.title.className = `text-4xl font-bold mb-2 text-${bldg.color.split('-')[1]}-600`;
+                }
+
+                // Route to specific game logic
+                switch(id) {
+                    case 'angka': this.initGameAngka(); break;
+                    case 'huruf': this.initGameHuruf(); break;
+                    case 'warna': this.initGameWarna(); break;
+                    case 'bentuk': this.initGameBentuk(); break;
+                    case 'buah': this.initGameBuah(); break;
+                    case 'hewan': this.initGameHewan(); break;
+                    case 'profesi': this.initGameProfesi(); break;
+                    case 'musik': this.initGameMusik(); break;
+                    default: this.initComingSoon(); break;
+                }
+            }
+
+            // Game 1: Angka (Find missing number)
+            initGameAngka() {
+                const instruksi = "Pilih angka yang hilang untuk melengkapi urutan!";
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(instruksi);
+
+                const startNum = Math.floor(Math.random() * 5) + 1; // 1-5
+                let sequence = [startNum, startNum+1, startNum+2, startNum+3];
+                const missingIndex = Math.floor(Math.random() * 4);
+                const missingNum = sequence[missingIndex];
+                sequence[missingIndex] = '?';
+
+                let html = `<div class="flex gap-4 mb-10">`;
+                sequence.forEach(num => {
+                    if (num === '?') {
+                        html += `<div class="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-gray-200 border-4 border-dashed border-gray-400 flex items-center justify-center text-4xl font-bold text-gray-500">?</div>`;
+                    } else {
+                        html += `<div class="w-16 h-16 md:w-24 md:h-24 rounded-2xl bg-red-400 border-4 border-white shadow-soft flex items-center justify-center text-4xl font-bold text-white">${num}</div>`;
+                    }
+                });
+                html += `</div><div class="flex gap-6 mt-8 flex-wrap justify-center">`;
+
+                // Generate choices
+                let choices = [missingNum];
+                while(choices.length < 3) {
+                    let r = Math.floor(Math.random() * 10) + 1;
+                    if (!choices.includes(r) && !sequence.includes(r)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5); // shuffle
+
+                choices.forEach(c => {
+                    html += `<button class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-yellow-400 border-4 border-white shadow-soft text-5xl font-bold text-white btn-press hover:bg-yellow-300" onclick="app.gameEngine.checkAnswer(${c}, ${missingNum})">${c}</button>`;
+                });
+                html += `</div>`;
+                
+                this.area.innerHTML = html;
+            }
+
+            // Game 2: Huruf (Match Upper to Lowercase)
+            initGameHuruf() {
+                const hurufBesar = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'M', 'R', 'S'];
+                const hurufKecKecil = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'm', 'r', 's'];
+                
+                const idx = Math.floor(Math.random() * hurufBesar.length);
+                const targetBesar = hurufBesar[idx];
+                const targetKecil = hurufKecKecil[idx];
+
+                const instruksi = `Temukan huruf kecil untuk ${targetBesar}`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(instruksi);
+
+                let html = `
+                    <div class="text-9xl font-bold text-blue-500 mb-12 animate-bounce-slow drop-shadow-md">${targetBesar}</div>
+                    <div class="flex gap-6">
+                `;
+
+                let choices = [targetKecil];
+                while(choices.length < 3) {
+                    let r = hurufKecKecil[Math.floor(Math.random() * hurufKecKecil.length)];
+                    if (!choices.includes(r)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                choices.forEach(c => {
+                    html += `<button class="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-blue-400 border-4 border-white shadow-soft text-6xl font-bold text-white btn-press hover:bg-blue-300" onclick="app.gameEngine.checkAnswer('${c}', '${targetKecil}')">${c}</button>`;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            // Game 3: Warna (Find colored object)
+            initGameWarna() {
+                const warnaData = [
+                    { nama: 'Merah', id: 'merah', color: 'bg-red-500', hex: '#ef4444' },
+                    { nama: 'Biru', id: 'biru', color: 'bg-blue-500', hex: '#3b82f6' },
+                    { nama: 'Kuning', id: 'kuning', color: 'bg-yellow-400', hex: '#facc15' },
+                    { nama: 'Hijau', id: 'hijau', color: 'bg-green-500', hex: '#22c55e' },
+                ];
+                
+                const target = warnaData[Math.floor(Math.random() * warnaData.length)];
+                
+                const instruksi = `Pilih balon warna ${target.nama}`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(instruksi);
+
+                let choices = [target];
+                while(choices.length < 3) {
+                    let r = warnaData[Math.floor(Math.random() * warnaData.length)];
+                    if (!choices.find(c => c.id === r.id)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                let html = `<div class="flex gap-8 md:gap-16 mt-8">`;
+                choices.forEach(c => {
+                    // SVG Baloon
+                    html += `
+                        <button class="btn-press animate-float" style="animation-delay: ${Math.random()}s" onclick="app.gameEngine.checkAnswer('${c.id}', '${target.id}')">
+                            <svg width="100" height="150" viewBox="0 0 100 150">
+                                <ellipse cx="50" cy="60" rx="40" ry="50" fill="${c.hex}" />
+                                <polygon points="40,110 60,110 50,120" fill="${c.hex}" />
+                                <path d="M50,120 Q60,140 40,150" stroke="gray" stroke-width="2" fill="none" />
+                                <ellipse cx="35" cy="40" rx="10" ry="20" fill="rgba(255,255,255,0.3)" transform="rotate(-30 35 40)" />
+                            </svg>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+            
+            // Game 4: Bentuk (Multiple Choice)
+            initGameBentuk() {
+                const bentukData = [
+                    { nama: 'Lingkaran', id: 'lingkaran', svg: '<circle cx="50" cy="50" r="45" fill="#facc15" stroke="white" stroke-width="4"/>' },
+                    { nama: 'Kotak', id: 'kotak', svg: '<rect x="5" y="5" width="90" height="90" fill="#f87171" rx="10" stroke="white" stroke-width="4"/>' },
+                    { nama: 'Segitiga', id: 'segitiga', svg: '<polygon points="50,10 90,90 10,90" fill="#60a5fa" stroke="white" stroke-width="4" stroke-linejoin="round"/>' },
+                ];
+                
+                const target = bentukData[Math.floor(Math.random() * bentukData.length)];
+                
+                const instruksi = `Manakah yang berbentuk ${target.nama}?`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(instruksi);
+
+                let choices = [...bentukData].sort(() => Math.random() - 0.5);
+
+                let html = `<div class="flex gap-8 md:gap-12 mt-8">`;
+                choices.forEach(c => {
+                    html += `
+                        <button class="btn-press w-32 h-32 md:w-40 md:h-40 glass flex items-center justify-center hover:bg-white/80" onclick="app.gameEngine.checkAnswer('${c.id}', '${target.id}')">
+                            <svg width="100" height="100" viewBox="0 0 100 100">${c.svg}</svg>
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            // Game 5: Buah (Panen Buah)
+            initGameBuah() {
+                const buahData = [
+                    { nama: 'Apel', id: 'apel', emoji: '🍎' },
+                    { nama: 'Pisang', id: 'pisang', emoji: '🍌' },
+                    { nama: 'Jeruk', id: 'jeruk', emoji: '🍊' },
+                    { nama: 'Anggur', id: 'anggur', emoji: '🍇' },
+                    { nama: 'Semangka', id: 'semangka', emoji: '🍉' },
+                    { nama: 'Stroberi', id: 'stroberi', emoji: '🍓' },
+                    { nama: 'Nanas', id: 'nanas', emoji: '🍍' }
+                ];
+                
+                const target = buahData[Math.floor(Math.random() * buahData.length)];
+                
+                const instruksi = `Ayo petik buah ${target.nama}!`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(instruksi);
+
+                let choices = [target];
+                while(choices.length < 3) {
+                    let r = buahData[Math.floor(Math.random() * buahData.length)];
+                    if (!choices.find(c => c.id === r.id)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5); // Acak pilihan
+
+                // UI Kebun Buah
+                let html = `
+                    <div class="text-4xl font-bold text-green-700 bg-green-100 px-8 py-4 rounded-full mb-10 border-4 border-green-300">
+                        Buah ${target.nama}
+                    </div>
+                    <div class="flex gap-6">
+                `;
+                
+                choices.forEach(c => {
+                    html += `
+                        <button class="btn-press w-24 h-24 md:w-32 md:h-32 rounded-[2rem] bg-green-200 border-4 border-white shadow-soft text-7xl flex items-center justify-center hover:bg-green-100 transition-colors animate-float" style="animation-delay: ${Math.random()}s" onclick="app.gameEngine.checkAnswer('${c.id}', '${target.id}')">
+                            ${c.emoji}
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            // Game 6: Hewan (Sound/Emoji Match)
+            initGameHewan() {
+                const hewanData = [
+                    { nama: 'Sapi', id: 'sapi', emoji: '🐄', suara: 'Mooo...', makanan: 'Rumput', makananEmoji: '🌿' },
+                    { nama: 'Kucing', id: 'kucing', emoji: '🐱', suara: 'Meow...', makanan: 'Ikan', makananEmoji: '🐟' },
+                    { nama: 'Anjing', id: 'anjing', emoji: '🐶', suara: 'Guk guk...', makanan: 'Tulang', makananEmoji: '🦴' },
+                    { nama: 'Bebek', id: 'bebek', emoji: '🦆', suara: 'Kwek kwek...', makanan: 'Cacing', makananEmoji: '🪱' },
+                    { nama: 'Monyet', id: 'monyet', emoji: '🐒', suara: 'Uu aa...', makanan: 'Pisang', makananEmoji: '🍌' },
+                    { nama: 'Kelinci', id: 'kelinci', emoji: '🐰', suara: 'Cit cit...', makanan: 'Wortel', makananEmoji: '🥕' }
+                ];
+                
+                const target = hewanData[Math.floor(Math.random() * hewanData.length)];
+                // Acak tipe pertanyaan: 50% tanya suara, 50% tanya makanan
+                const questionType = Math.random() > 0.5 ? 'suara' : 'makanan';
+                
+                let instruksi = '';
+                let ttsText = '';
+                let visualHint = '';
+
+                if (questionType === 'suara') {
+                    instruksi = `Hewan apa yang bunyinya "${target.suara}"?`;
+                    ttsText = `Hewan apa yang bunyinya ${target.suara}`; // PERBAIKAN: Membaca suara hewan secara audio (bukan nama hewannya)
+                    visualHint = `"${target.suara}"`;
+                } else {
+                    instruksi = `Hewan apa yang suka makan ${target.makanan}?`;
+                    ttsText = instruksi;
+                    visualHint = `${target.makananEmoji} ${target.makanan}`;
+                }
+
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(ttsText);
+
+                let choices = [target];
+                while(choices.length < 3) {
+                    let r = hewanData[Math.floor(Math.random() * hewanData.length)];
+                    if (!choices.find(c => c.id === r.id)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                let html = `<div class="text-4xl font-bold text-gray-700 bg-orange-100 px-8 py-4 rounded-full mb-10 border-4 border-orange-300 shadow-sm animate-bounce-slow">${visualHint}</div><div class="flex gap-6">`;
+                choices.forEach(c => {
+                    html += `
+                        <button class="btn-press w-24 h-24 md:w-32 md:h-32 rounded-[2rem] bg-orange-300 border-4 border-white shadow-soft text-7xl flex items-center justify-center hover:bg-orange-200 transition-colors" onclick="app.gameEngine.checkAnswer('${c.id}', '${target.id}')">
+                            ${c.emoji}
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            // Game 7: Profesi (Cocokkan Alat/Kendaraan Kerja)
+            initGameProfesi() {
+                const profesiData = [
+                    { nama: 'Guru', id: 'guru', emoji: '👩‍🏫', alatEmoji: '📚' },
+                    { nama: 'Dokter', id: 'dokter', emoji: '👨‍⚕️', alatEmoji: '🩺' },
+                    { nama: 'Polisi', id: 'polisi', emoji: '👮', alatEmoji: '🚓' },
+                    { nama: 'Pemadam Kebakaran', id: 'pemadam', emoji: '👨‍🚒', alatEmoji: '🚒' },
+                    { nama: 'Petani', id: 'petani', emoji: '👨‍🌾', alatEmoji: '🚜' },
+                    { nama: 'Pilot', id: 'pilot', emoji: '👨‍✈️', alatEmoji: '✈️' },
+                    { nama: 'Koki', id: 'koki', emoji: '👨‍🍳', alatEmoji: '🍳' }
+                ];
+                
+                const target = profesiData[Math.floor(Math.random() * profesiData.length)];
+                
+                const instruksi = `Pilih alat kerja untuk ${target.nama}!`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(`Yang manakah alat kerja untuk ${target.nama}?`);
+
+                let choices = [target];
+                while(choices.length < 3) {
+                    let r = profesiData[Math.floor(Math.random() * profesiData.length)];
+                    if (!choices.find(c => c.id === r.id)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                let html = `
+                    <div class="flex flex-col items-center mb-8">
+                        <div class="text-8xl animate-bounce-slow drop-shadow-md mb-2">${target.emoji}</div>
+                        <div class="text-3xl font-bold text-pink-700 bg-pink-100 px-6 py-2 rounded-full border-4 border-pink-300 text-center max-w-[90%] leading-tight">
+                            ${target.nama}
+                        </div>
+                    </div>
+                    <div class="flex gap-6">
+                `;
+                
+                choices.forEach(c => {
+                    html += `
+                        <button class="btn-press w-24 h-24 md:w-32 md:h-32 rounded-[2rem] bg-pink-300 border-4 border-white shadow-soft text-6xl flex items-center justify-center hover:bg-pink-200 transition-colors" onclick="app.gameEngine.checkAnswer('${c.id}', '${target.id}')">
+                            ${c.alatEmoji}
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            // Game 8: Studio Musik (Pengenalan Alat Musik & Suara)
+            initGameMusik() {
+                const musikData = [
+                    { nama: 'Piano', id: 'piano', emoji: '🎹', freq: 523.25, type: 'sine' }, // Nada C
+                    { nama: 'Gitar', id: 'gitar', emoji: '🎸', freq: 329.63, type: 'triangle' }, // Nada E
+                    { nama: 'Drum', id: 'drum', emoji: '🥁', freq: 80, type: 'square' }, // Nada rendah 
+                    { nama: 'Terompet', id: 'terompet', emoji: '🎺', freq: 440, type: 'sawtooth' }, // Nada A
+                    { nama: 'Biola', id: 'biola', emoji: '🎻', freq: 659.25, type: 'sine' } // Nada E tinggi
+                ];
+                
+                const target = musikData[Math.floor(Math.random() * musikData.length)];
+                
+                const instruksi = `Ayo mainkan alat musik ${target.nama}!`;
+                this.instruction.innerText = instruksi;
+                this.app.tts.speak(`Yang manakah alat musik ${target.nama}?`);
+
+                let choices = [target];
+                while(choices.length < 3) {
+                    let r = musikData[Math.floor(Math.random() * musikData.length)];
+                    if (!choices.find(c => c.id === r.id)) choices.push(r);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                let html = `
+                    <div class="text-4xl font-bold text-teal-700 bg-teal-100 px-8 py-4 rounded-full mb-10 border-4 border-teal-300 shadow-sm animate-pulse">
+                        Cari ${target.nama} 🎵
+                    </div>
+                    <div class="flex gap-6">
+                `;
+                
+                choices.forEach(c => {
+                    html += `
+                        <button class="btn-press w-24 h-24 md:w-32 md:h-32 rounded-[2rem] bg-teal-300 border-4 border-white shadow-soft text-7xl flex items-center justify-center hover:bg-teal-200 transition-colors animate-float" style="animation-delay: ${Math.random()}s" onclick="app.gameEngine.checkAnswerMusik('${c.id}', '${target.id}', ${c.freq}, '${c.type}')">
+                            ${c.emoji}
+                        </button>
+                    `;
+                });
+                html += `</div>`;
+                this.area.innerHTML = html;
+            }
+
+            checkAnswerMusik(selected, target, freq, type) {
+                // Membunyikan nada sintesis alat musik yang ditekan terlebih dahulu
+                this.app.audio.playTone(freq, type, 0.4);
+                
+                // Beri jeda kecil agar anak bisa mendengar nada alat musik sebelum jawaban dievaluasi
+                setTimeout(() => {
+                    this.checkAnswer(selected, target);
+                }, 400);
+            }
+
+            initComingSoon() {
+                this.instruction.innerText = "Segera Hadir!";
+                this.area.innerHTML = `
+                    <div class="text-8xl mb-6 animate-float">🚧</div>
+                    <h3 class="text-3xl font-bold text-gray-600 text-center">Permainan ini sedang dibangun.</h3>
+                    <p class="text-xl text-gray-500 mt-4 text-center">Pilih bangunan lain ya!</p>
+                `;
+            }
+
+            checkAnswer(selected, target) {
+                if (selected === target) {
+                    this.app.audio.play('success');
+                    this.app.tts.speak(this.getRandomPraise());
+                    this.app.state.addProgress(this.currentGameId, 20);
+                    this.app.showSuccessModal();
+                } else {
+                    this.app.audio.play('error');
+                    this.app.tts.speak("Ups, coba lagi ya!");
+                    
+                    // Visual feedback for error (shake)
+                    this.area.classList.add('animate-wiggle');
+                    setTimeout(() => this.area.classList.remove('animate-wiggle'), 500);
+                }
+            }
+
+            getRandomPraise() {
+                const praises = ["Hebat!", "Pintar sekali!", "Luar biasa!", "Jawaban yang benar!", "Kamu juara!"];
+                return praises[Math.floor(Math.random() * praises.length)];
+            }
+        }
+
+        // --- 4. MAIN APP CONTROLLER ---
+        class App {
+            constructor() {
+                this.state = new StateManager();
+                this.audio = new AudioEngine(this.state);
+                this.tts = new TTSEngine(this.state);
+                this.gameEngine = new MinigameEngine(this);
+                
+                this.screens = {
+                    splash: document.getElementById('screen-splash'),
+                    charSelect: document.getElementById('screen-char-select'),
+                    map: document.getElementById('screen-map'),
+                    game: document.getElementById('screen-game'),
+                    dashboard: document.getElementById('screen-dashboard')
+                };
+                
+                this.uiOverlay = document.getElementById('ui-overlay');
+                this.btnBack = document.getElementById('btn-back');
+                this.btnParent = document.getElementById('btn-parent');
+                this.btnMainMenu = document.getElementById('btn-main-menu');
+                this.mascot = document.getElementById('mascot');
+
+                this.renderMap();
+                this.setupConfetti();
+                this.setupOpeningAudioListener();
+            }
+
+            // Mendengarkan ketukan pertama di Splash Screen agar melodi pembuka berbunyi secara legal
+            setupOpeningAudioListener() {
+                const splashScreen = document.getElementById('screen-splash');
+                const triggerSplashBGM = () => {
+                    this.activateSplashAudio();
+                    // Hapus event listener setelah interaksi pertama berhasil dilakukan
+                    splashScreen.removeEventListener('click', triggerSplashBGM);
+                    splashScreen.removeEventListener('touchstart', triggerSplashBGM);
+                };
+                splashScreen.addEventListener('click', triggerSplashBGM);
+                splashScreen.addEventListener('touchstart', triggerSplashBGM);
+            }
+
+            // Aktifkan audio context, bunyikan intro, lalu lanjutkan melodi BGM ceria
+            activateSplashAudio() {
+                if (this.audio.ctx.state === 'suspended') {
+                    this.audio.ctx.resume();
+                }
+                // Mainkan Jingle Fanfare Ceria Pembuka!
+                this.audio.playIntroFanfare();
+                
+                // Mulai melodi BGM yang seru setelah Jingle Fanfare selesai (800ms)
+                setTimeout(() => {
+                    this.audio.startBGM();
+                }, 800);
+
+                // Sembunyikan petunjuk audio
+                const hint = document.getElementById('splash-audio-hint');
+                if (hint) hint.classList.add('hidden');
+            }
+
+            initApp() {
+                this.audio.play('click');
+                
+                // Mulai musik latar belakang ceria (jika belum berbunyi akibat ketukan pertama)
+                this.audio.startBGM();
+
+                this.screens.splash.style.opacity = '0';
+                setTimeout(() => {
+                    this.hideAllScreens();
+                    if (!this.state.state.character) {
+                        this.showScreen('charSelect');
+                        this.tts.speak("Halo Adik! Pilih teman bermainmu hari ini yuk!");
+                    } else {
+                        this.goHome();
+                    }
+                    this.state.updateUI();
+                }, 500);
+            }
+
+            selectCharacter(char) {
+                this.audio.play('success');
+                this.state.state.character = char;
+                this.state.save();
+                this.goHome();
+                this.tts.speak("Asyik! Ayo kita bermain di Kota Edukasi!");
+                this.triggerConfetti();
+            }
+
+            goHome() {
+                this.audio.play('click');
+                this.hideAllScreens();
+                this.showScreen('map');
+                this.uiOverlay.classList.remove('hidden');
+                this.btnBack.classList.add('hidden');
+                this.btnParent.classList.remove('hidden');
+                this.btnMainMenu.classList.remove('hidden');
+                this.mascot.classList.remove('hidden');
+                
+                // Pastikan BGM tetap bermain saat masuk kota
+                this.audio.startBGM();
+            }
+
+            goMenuAwal() {
+                this.audio.play('click');
+                this.hideAllScreens();
+                this.screens.splash.style.opacity = '1';
+                this.showScreen('splash');
+                this.uiOverlay.classList.add('hidden');
+                this.mascot.classList.add('hidden');
+                
+                // Hentikan BGM saat kembali ke layar paling awal dan siapkan kembali pendengar interaksi
+                this.audio.stopBGM();
+                
+                // Kembalikan petunjuk audio agar siap diklik kembali
+                const hint = document.getElementById('splash-audio-hint');
+                if (hint) hint.classList.remove('hidden');
+                this.setupOpeningAudioListener();
+            }
+
+            openGame(id) {
+                this.audio.play('click');
+                this.hideAllScreens();
+                this.showScreen('game');
+                this.btnBack.classList.remove('hidden');
+                this.btnParent.classList.add('hidden');
+                this.btnMainMenu.classList.add('hidden');
+                this.mascot.classList.add('hidden');
+                this.gameEngine.loadGame(id);
+            }
+
+            showDashboard() {
+                this.audio.play('click');
+                this.renderDashboard();
+                this.showScreen('dashboard');
+                this.uiOverlay.classList.add('hidden');
+                this.mascot.classList.add('hidden');
+            }
+
+            toggleAudio() {
+                this.state.state.audioEnabled = !this.state.state.audioEnabled;
+                this.state.save();
+                this.audio.play('click');
+                
+                if (this.state.state.audioEnabled) {
+                    this.audio.startBGM();
+                } else {
+                    this.audio.stopBGM();
+                }
+            }
+
+            mascotSpeak() {
+                const phrases = [
+                    "Ayo belajar bersamaku!",
+                    "Pilih bangunan untuk bermain.",
+                    "Kamu pasti bisa!",
+                    "Kumpulkan bintang yang banyak ya!"
+                ];
+                const text = phrases[Math.floor(Math.random() * phrases.length)];
+                this.tts.speak(text);
+                
+                // Animation
+                this.mascot.classList.add('animate-bounce');
+                setTimeout(() => this.mascot.classList.remove('animate-bounce'), 1000);
+            }
+
+            hideAllScreens() {
+                Object.values(this.screens).forEach(s => s.classList.add('hidden'));
+            }
+
+            showScreen(name) {
+                this.screens[name].classList.remove('hidden');
+            }
+
+            renderMap() {
+                const mapGrid = document.getElementById('map-grid');
+                mapGrid.innerHTML = '';
+                
+                GameData.buildings.forEach((bldg, index) => {
+                    const el = document.createElement('div');
+                    // Add slight delay for waterfall animation effect
+                    el.className = `building-card ${bldg.color} rounded-[2rem] border-4 border-white p-4 flex flex-col items-center justify-center text-center shadow-soft animate-pop-in relative overflow-hidden`;
+                    el.style.animationDelay = `${index * 0.05}s`;
+                    
+                    // Progress indicator ring (simplified via bottom border)
+                    const progress = this.state.state.progress[bldg.id] || 0;
+                    
+                    el.innerHTML = `
+                        <div class="text-6xl mb-3 mt-2 filter drop-shadow-md">${bldg.icon}</div>
+                        <h3 class="font-bold text-gray-800 text-lg leading-tight mb-1">${bldg.title}</h3>
+                        <p class="text-xs text-gray-700 font-medium opacity-80 mb-2">${bldg.desc}</p>
+                        
+                        <!-- Progress Bar Mini -->
+                        <div class="w-full bg-white/50 h-2 rounded-full mt-auto overflow-hidden">
+                            <div class="h-full bg-green-500 rounded-full transition-all duration-1000" style="width: ${progress}%"></div>
+                        </div>
+                    `;
+                    el.onclick = () => this.openGame(bldg.id);
+                    mapGrid.appendChild(el);
+                });
+            }
+
+            renderDashboard() {
+                document.getElementById('dash-level').innerText = this.state.state.level;
+                document.getElementById('dash-stars').innerHTML = `<i class="fa-solid fa-star"></i> ${this.state.state.stars}`;
+                document.getElementById('dash-coins').innerHTML = `<i class="fa-solid fa-coins"></i> ${this.state.state.coins}`;
+
+                // Progress Bars
+                const progContainer = document.getElementById('dash-progress');
+                progContainer.innerHTML = '';
+                GameData.buildings.forEach(b => {
+                    const p = this.state.state.progress[b.id] || 0;
+                    if(p > 0) { // Only show started games
+                        progContainer.innerHTML += `
+                            <div>
+                                <div class="flex justify-between text-sm font-bold text-gray-600 mb-1">
+                                    <span>${b.title}</span>
+                                    <span>${p}%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 h-4 rounded-full overflow-hidden border border-gray-300">
+                                    <div class="${b.color.replace('bg-', 'bg-')} h-full rounded-full" style="width: ${p}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                if(progContainer.innerHTML === '') progContainer.innerHTML = '<p class="text-gray-500 italic">Belum ada aktivitas.</p>';
+
+                // Badges
+                const badgeContainer = document.getElementById('dash-badges');
+                badgeContainer.innerHTML = '';
+                GameData.badges.forEach(b => {
+                    const isUnlocked = this.state.state.unlockedBadges.includes(b.id);
+                    badgeContainer.innerHTML += `
+                        <div class="flex flex-col items-center ${isUnlocked ? 'opacity-100' : 'opacity-40 grayscale'}">
+                            <div class="w-16 h-16 rounded-full bg-yellow-100 border-4 ${isUnlocked ? 'border-yellow-400' : 'border-gray-300'} flex items-center justify-center text-3xl shadow-sm">
+                                ${b.icon}
+                            </div>
+                            <span class="text-xs font-bold mt-2 text-gray-700">${b.name}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            resetData() {
+                if(confirm("Apakah Anda yakin ingin menghapus semua progress belajar anak?")) {
+                    this.state.reset();
+                    this.goHome();
+                    this.initApp(); // Restart
+                }
+            }
+
+            // Success Modal & Rewards
+            showSuccessModal() {
+                const modal = document.getElementById('modal-success');
+                const content = document.getElementById('modal-success-content');
+                modal.classList.remove('hidden');
+                setTimeout(() => content.classList.remove('scale-0'), 10);
+                
+                this.triggerConfetti();
+                this.state.addReward(10, 50); // Give 10 stars, 50 coins
+            }
+
+            closeSuccessModal() {
+                this.audio.play('click');
+                const modal = document.getElementById('modal-success');
+                const content = document.getElementById('modal-success-content');
+                content.classList.add('scale-0');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    // Reload current game for next round
+                    this.gameEngine.loadGame(this.gameEngine.currentGameId);
+                }, 300);
+            }
+
+            // Simple Particle/Confetti System inside Canvas
+            setupConfetti() {
+                this.canvas = document.getElementById('confetti-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                
+                const resize = () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                };
+                window.addEventListener('resize', resize);
+                resize();
+                
+                this.renderConfettiFrame = this.renderConfettiFrame.bind(this);
+                requestAnimationFrame(this.renderConfettiFrame);
+            }
+
+            triggerConfetti() {
+                const colors = ['#facc15', '#f87171', '#60a5fa', '#34d399', '#c084fc'];
+                for(let i=0; i<100; i++) {
+                    this.particles.push({
+                        x: this.canvas.width / 2,
+                        y: this.canvas.height / 2,
+                        r: Math.random() * 6 + 4,
+                        dx: Math.random() * 20 - 10,
+                        dy: Math.random() * -20 - 5,
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        tilt: Math.floor(Math.random() * 10) - 10,
+                        tiltAngleInc: (Math.random() * 0.07) + 0.05,
+                        tiltAngle: 0
+                    });
+                }
+            }
+
+            renderConfettiFrame() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                for(let i = 0; i < this.particles.length; i++) {
+                    let p = this.particles[i];
+                    p.tiltAngle += p.tiltAngleInc;
+                    p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                    p.x += Math.sin(p.tiltAngle) * 2 + p.dx * 0.5;
+                    p.dy += 0.5; // gravity
+                    p.y += p.dy;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.lineWidth = p.r;
+                    this.ctx.strokeStyle = p.color;
+                    this.ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                    this.ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                    this.ctx.stroke();
+
+                    // Remove if out of bounds
+                    if(p.y > this.canvas.height) {
+                        this.particles.splice(i, 1);
+                        i--;
+                    }
+                }
+                requestAnimationFrame(this.renderConfettiFrame);
+            }
+        }
+
+        // Initialize App when DOM is ready
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new App();
+        });
+
+    </script>
+</body>
+</html>
